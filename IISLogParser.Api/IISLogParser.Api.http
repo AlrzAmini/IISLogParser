@@ -1,0 +1,6 @@
+@IISLogParser.Api_HostAddress = http://localhost:5254
+
+GET {{IISLogParser.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
