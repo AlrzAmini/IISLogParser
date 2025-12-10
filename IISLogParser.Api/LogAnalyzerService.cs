@@ -30,22 +30,47 @@ public class LogAnalyzerService : ILogAnalyzerService
     {
         foreach (var line in lines)
         {
-            if (line.StartsWith("#")) continue;
+            if (line.StartsWith($"#")) continue;
 
-            var cols = line.Split(' ');
+            var cols = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (cols.Length < 10) continue;
 
-            yield return new IISLogEntry
+            IISLogEntry? entry = null;
+
+            try
             {
-                Date = DateTime.Parse($"{cols[0]} {cols[1]}", CultureInfo.InvariantCulture),
-                Ip = cols[2],
-                UriStem = cols[4],
-                Status = int.Parse(cols[6]),
-                TimeTakenMs = double.Parse(cols[9]),
-                UserAgent = cols.Length > 10 ? string.Join(" ", cols.Skip(10)) : ""
-            };
+                // TimeTaken is always the last column
+                var timeTaken = double.TryParse(cols[^1], out var t) ? t : 0;
+
+                // UserAgent is everything from column 9 up to the column before last 5 columns
+                // In your sample: last 5 columns are "https://dozabaneh.com/ 200 0 0 125"
+                // so UserAgent is cols[9]..cols[^6]
+                int userAgentEnd = cols.Length - 5; // adjust if format changes
+                string userAgent = userAgentEnd >= 9
+                    ? string.Join(' ', cols[9..(userAgentEnd + 1)]).Replace('+', ' ')
+                    : "";
+
+                entry = new IISLogEntry
+                {
+                    Date = DateTime.Parse($"{cols[0]} {cols[1]}", CultureInfo.InvariantCulture),
+                    Ip = cols[2],
+                    UriStem = cols[4],
+                    Status = int.TryParse(cols[^4], out var s) ? s : 0, // sc-status is 4th from last
+                    TimeTakenMs = timeTaken,
+                    UserAgent = userAgent
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Skipped line: {line} - {ex.Message}");
+            }
+
+            if (entry != null)
+                yield return entry;
         }
     }
+
+
 
     // ============================================
     // BASIC STATS

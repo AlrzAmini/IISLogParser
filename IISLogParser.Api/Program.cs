@@ -26,14 +26,24 @@ app.MapScalarApiReference(options =>
 // Required for Scalar to read the spec
 app.MapOpenApi();
 
+app.MapGet("/hello", async (ILogAnalyzerService svc) => Results.Ok(new { Message = "Hello" }))
+    .WithName("Hello");
+
 
 // ======================================================================
 // SECTION: BASIC LOG SCAN
 // ======================================================================
 app.MapGet("/logs/scan", async (ILogAnalyzerService svc) =>
 {
-    var logs = await LoadLogsAsync(svc);
-    return Results.Ok(new { Total = logs.Count });
+    try
+    {
+        var logs = await LoadLogsAsync(svc);
+        return Results.Ok(new { Total = logs.Count });
+    }
+    catch (Exception e)
+    {
+        return Results.InternalServerError(new { Message = e.Message });
+    }
 })
 .WithName("ScanLogs")
 .WithDescription("Scans the IIS log folder and returns the total number of parsed logs.");
