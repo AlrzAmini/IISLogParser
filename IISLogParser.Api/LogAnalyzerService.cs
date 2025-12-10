@@ -11,6 +11,11 @@ public class LogAnalyzerService : ILogAnalyzerService
     {
         var logs = new List<IISLogEntry>();
 
+        if (!Directory.Exists(folder))
+        {
+            throw new DirectoryNotFoundException($"Log folder not found: {folder}");
+        }
+
         var files = Directory.GetFiles(folder, "*.log", SearchOption.AllDirectories);
         foreach (var file in files)
         {
